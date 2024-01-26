@@ -19,6 +19,8 @@ struct ContentView: View {
     @State private var errorMessage = ""
     @State private var showingError = false
     
+    @State private var score = 0
+    
     // MARK: - METHODS
     
     func addNewWord() {
@@ -26,7 +28,15 @@ struct ContentView: View {
         let answer = newWord.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
         
         // exit if the remaining string is empty
-        guard answer.count > 0 else { return }
+        guard answer.count > 3 else {
+            wordError(title: "Word too short", message: "Words must be at least 4 letters long")
+            return
+        }
+        
+        guard answer != rootWord else {
+            wordError(title: "Nice Try...", message: "You can't use your starting word")
+            return
+        }
         
         guard isOriginal(word: answer) else {
             wordError(title: "Word used already", message: "Be more original")
@@ -46,10 +56,16 @@ struct ContentView: View {
         withAnimation {
             usedWords.insert(answer, at: 0)
         }
+        score += answer.count
         newWord = ""
     }
     
     func startGame() {
+        
+        usedWords.removeAll()
+        newWord = ""
+        score = 0
+        
         // 1. Find the URL for the start.txt in our app bundle
         if let startWordsURL = Bundle.main.url(forResource: "start", withExtension: "txt") {
             // 2. Load start.txt into a string
@@ -108,6 +124,7 @@ struct ContentView: View {
                 Section {
                     TextField("Enter your word", text: $newWord)
                         .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
                 }
                 Section {
                     ForEach(usedWords, id: \.self) { word in
@@ -117,6 +134,19 @@ struct ContentView: View {
                         }
                     }
                 }
+            }
+            .toolbar(content: {
+                Button("New Game") {
+                    startGame()
+                }
+            })
+            .safeAreaInset(edge: .bottom) {
+                Text("Score: \(score)")
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(.gray)
+                    .foregroundStyle(.white)
+                    .font(.title)
             }
             .navigationTitle(rootWord)
             .onSubmit(addNewWord)
